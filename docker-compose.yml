@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  sqldata:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - SA_PASSWORD=Pass@word
+      - ACCEPT_EULA=Y
+    ports:
+      - "5434:1433"
+    volumes: 
+      - C:\MSSQL\BACKUP\KEEP:/var/opt/mssql/backups
+      - C:\MSSQL\DockerFiles\datafiles:/var/opt/sqlserver
+      - C:\MSSQL\DockerFiles\system:/var/opt/mssql

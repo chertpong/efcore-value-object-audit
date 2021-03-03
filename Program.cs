@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Newtonsoft.Json;
 
 namespace EfCoreTest
 {
@@ -10,11 +11,21 @@ namespace EfCoreTest
     {
         static void Main()
         {
+            using (var context = new Context())
+            {
+                context.Database.EnsureCreated();
+            }
+            using (var context = new Context())
+            {
+                context.Database.ExecuteSqlRaw("delete from Parents");
+                context.Database.ExecuteSqlRaw("delete from ParentTwo");
+            }
             Parent parent;
             using (var db = new Context())
             {
                 parent = new Parent();
                 parent.Simple = SimpleValueObject.Create();
+                Console.WriteLine($"Case#1: Created {JsonConvert.SerializeObject(parent)}");
                 db.Add(parent);
                 db.SaveChanges();
             }
@@ -22,8 +33,30 @@ namespace EfCoreTest
             {
                 parent = db.Parents.Single();
                 parent.Simple = SimpleValueObject.Create();
-                // Set entity modified for no particular reason other than searching this state in audit logging
+                Console.WriteLine($"Case#1: Updated to {JsonConvert.SerializeObject(parent)}");
+                //db.Parents.Update(parent);
                 db.Entry(parent).State = EntityState.Modified;
+                db.SaveChanges();
+            }
+
+            ParentTwo parentTwo;
+            using (var db = new Context())
+            {
+                parentTwo = new ParentTwo();
+                parentTwo.Simple = SimpleValueObject.Create();
+                parentTwo.SimpleTwo = SimpleValueObject.Create();
+                Console.WriteLine($"Created {JsonConvert.SerializeObject(parentTwo)}");
+                db.Add(parentTwo);
+                db.SaveChanges();
+            }
+            using (var db = new Context())
+            {
+                parentTwo = db.ParentTwo.Include(e => e.Simple).Include(e => e.SimpleTwo).Single();
+                parentTwo.Simple = SimpleValueObject.Create();
+                parentTwo.SimpleTwo = SimpleValueObject.Create();
+                Console.WriteLine($"Updated to {JsonConvert.SerializeObject(parentTwo)}");
+                //db.ParentTwo.Update(parentTwo);
+                db.Entry(parentTwo).State = EntityState.Modified;
                 db.SaveChanges();
             }
         }
@@ -34,6 +67,8 @@ namespace EfCoreTest
         // Here we do the actual audit logging
         public static void SaveAuditLog(ChangeTracker changeTracker)
         {
+            var allEntries = changeTracker.Entries().ToList();
+            Console.WriteLine($"Count = {allEntries.Count}");
             foreach (var entry in changeTracker.Entries<IAuditable>())
             {
                 switch (entry.State)
@@ -82,12 +117,20 @@ namespace EfCoreTest
     public class Context : DbContext
     {
         public DbSet<Parent> Parents { get; set; } = null!;
+        public DbSet<ParentTwo> ParentTwo { get; set; } = null!;
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseInMemoryDatabase("EfCoreTest");
+        {
+            options.UseSqlServer("Server=tcp:localhost,5434;User Id=sa;Password=Pass@word;Initial Catalog=ValueObjAudit;");
+            //options.UseInMemoryDatabase("ValueObjAudit");
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-            => modelBuilder.ApplyConfiguration(new ParentConfiguration());
+        {
+            modelBuilder.ApplyConfiguration(new ParentConfiguration());
+            modelBuilder.ApplyConfiguration(new ParentTwoConfiguration());
+        }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
@@ -99,10 +142,25 @@ namespace EfCoreTest
         {
             public void Configure(EntityTypeBuilder<Parent> entity)
             {
-                // We are looking for owned types when audit logging
                 entity.OwnsOne(e => e.Simple)
                     .Property(e => e.Value)
                     .HasColumnName("Simple")
+                    .HasMaxLength(50);
+            }
+        }
+
+        internal class ParentTwoConfiguration : IEntityTypeConfiguration<ParentTwo>
+        {
+            public void Configure(EntityTypeBuilder<ParentTwo> entity)
+            {
+                entity.OwnsOne(e => e.Simple)
+                    .Property(e => e.Value)
+                    .HasColumnName("Simple")
+                    .HasMaxLength(50);
+
+                entity.OwnsOne(e => e.SimpleTwo)
+                    .Property(e => e.Value)
+                    .HasColumnName("SimpleTwo")
                     .HasMaxLength(50);
             }
         }
@@ -117,5 +175,14 @@ namespace EfCoreTest
         public int Id { get; set; }
         // This is the value object that we want to see changed in audit logs
         public SimpleValueObject Simple { get; set; } = null!;
+    }
+
+    // Parent object with value object property
+    public class ParentTwo : IAuditable
+    {
+        public int Id { get; set; }
+        // This is the value object that we want to see changed in audit logs
+        public SimpleValueObject Simple { get; set; } = null!;
+        public SimpleValueObject SimpleTwo { get; set; } = null!;
     }
 }
