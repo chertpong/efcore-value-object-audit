@@ -18,7 +18,7 @@ namespace EfCoreTest
             using (var context = new Context())
             {
                 context.Database.ExecuteSqlRaw("delete from Parents");
-                context.Database.ExecuteSqlRaw("delete from ParentTwo");
+                //context.Database.ExecuteSqlRaw("delete from ParentTwo");
             }
             Parent parent;
             using (var db = new Context())
@@ -39,26 +39,26 @@ namespace EfCoreTest
                 db.SaveChanges();
             }
 
-            ParentTwo parentTwo;
-            using (var db = new Context())
-            {
-                parentTwo = new ParentTwo();
-                parentTwo.Simple = SimpleValueObject.Create();
-                parentTwo.SimpleTwo = SimpleValueObject.Create();
-                Console.WriteLine($"Created {JsonConvert.SerializeObject(parentTwo)}");
-                db.Add(parentTwo);
-                db.SaveChanges();
-            }
-            using (var db = new Context())
-            {
-                parentTwo = db.ParentTwo.Include(e => e.Simple).Include(e => e.SimpleTwo).Single();
-                parentTwo.Simple = SimpleValueObject.Create();
-                parentTwo.SimpleTwo = SimpleValueObject.Create();
-                Console.WriteLine($"Updated to {JsonConvert.SerializeObject(parentTwo)}");
-                //db.ParentTwo.Update(parentTwo);
-                db.Entry(parentTwo).State = EntityState.Modified;
-                db.SaveChanges();
-            }
+            //ParentTwo parentTwo;
+            //using (var db = new Context())
+            //{
+            //    parentTwo = new ParentTwo();
+            //    parentTwo.Simple = SimpleValueObject.Create();
+            //    parentTwo.SimpleTwo = SimpleValueObject.Create();
+            //    Console.WriteLine($"Created {JsonConvert.SerializeObject(parentTwo)}");
+            //    db.Add(parentTwo);
+            //    db.SaveChanges();
+            //}
+            //using (var db = new Context())
+            //{
+            //    parentTwo = db.ParentTwo.Include(e => e.Simple).Include(e => e.SimpleTwo).Single();
+            //    parentTwo.Simple = SimpleValueObject.Create();
+            //    parentTwo.SimpleTwo = SimpleValueObject.Create();
+            //    Console.WriteLine($"Updated to {JsonConvert.SerializeObject(parentTwo)}");
+            //    //db.ParentTwo.Update(parentTwo);
+            //    db.Entry(parentTwo).State = EntityState.Modified;
+            //    db.SaveChanges();
+            //}
         }
     }
 
@@ -117,7 +117,7 @@ namespace EfCoreTest
     public class Context : DbContext
     {
         public DbSet<Parent> Parents { get; set; } = null!;
-        public DbSet<ParentTwo> ParentTwo { get; set; } = null!;
+        //public DbSet<ParentTwo> ParentTwo { get; set; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
@@ -129,7 +129,7 @@ namespace EfCoreTest
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfiguration(new ParentConfiguration());
-            modelBuilder.ApplyConfiguration(new ParentTwoConfiguration());
+            //modelBuilder.ApplyConfiguration(new ParentTwoConfiguration());
         }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)

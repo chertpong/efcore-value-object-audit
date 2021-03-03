@@ -4,7 +4,6 @@ Related to stackoverflow discussion: https://stackoverflow.com/questions/6094649
 
 Cloned from https://github.com/ovirta/ValueObjectAuditing
 
+If the whole app has one entity and one value object, we can get the old value(s) of Value Object from DELETED EntityEntry.
 
-After added another entity which has same value object data type, EF Core will no longer produce DELETED entityEntry.
-
-see branch name `original` to see original version where the whole app contains only one entitty and one value object, the EF core will produce DELETED entityEntry if anyone updated that value object.
+Checkout branch name `main` to see once the Value Object type is being referenced by more than one entity, EF Core will no longer produce DELETED EntityEntry.
